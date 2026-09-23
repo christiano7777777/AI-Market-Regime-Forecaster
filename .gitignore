@@ -1,0 +1,7 @@
+cache/
+__pycache__/
+*.pyc
+dashboard/regime_data.json
+dashboard/news_candidates.json
+dashboard/output.html
+.env

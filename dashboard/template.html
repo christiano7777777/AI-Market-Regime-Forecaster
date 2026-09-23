@@ -1,0 +1,515 @@
+<title>AI Market Regime Forecaster</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap');
+
+:root{
+  --bg:#0B0E13; --surface:#12161E; --surface-2:#171C26;
+  --ink:#E7EAF0; --ink-soft:#9BA4B8; --ink-dim:#828BA0;
+  --line:#232935; --line-strong:#323A4A;
+  --accent:#5AC8E0; --accent-soft:#12333B;
+  --good:#4FD08A; --good-soft:#123324;
+  --bad:#FF6B5E; --bad-soft:#3A1F1C;
+  --warn:#E0A93F; --warn-soft:#3A2E12;
+  --s0:#5AA9E0; --s0-soft:#122A3B;
+  --s1:#FF6B5E; --s1-soft:#3A1F1C;
+  --s2:#4FD08A; --s2-soft:#123324;
+  --s3:#E0A93F; --s3-soft:#3A2E12;
+  --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 28px rgba(0,0,0,0.45);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#F1F3F6; --surface:#FFFFFF; --surface-2:#E9ECF1;
+    --ink:#12161E; --ink-soft:#4C5468; --ink-dim:#697086;
+    --line:#DBDFE6; --line-strong:#C1C7D1;
+    --accent:#1E8FA8; --accent-soft:#DBF1F6;
+    --good:#1B8A5A; --good-soft:#DCF3E8;
+    --bad:#C43E32; --bad-soft:#FBE1DE;
+    --warn:#96650F; --warn-soft:#F5E7CB;
+    --s0:#1E6FA8; --s0-soft:#DCEBF7;
+    --s1:#C43E32; --s1-soft:#FBE1DE;
+    --s2:#1B8A5A; --s2-soft:#DCF3E8;
+    --s3:#96650F; --s3-soft:#F5E7CB;
+    --shadow: 0 1px 2px rgba(15,20,30,0.06), 0 10px 26px rgba(15,20,30,0.07);
+  }
+}
+:root[data-theme="light"]{
+  --bg:#F1F3F6; --surface:#FFFFFF; --surface-2:#E9ECF1;
+  --ink:#12161E; --ink-soft:#4C5468; --ink-dim:#697086;
+  --line:#DBDFE6; --line-strong:#C1C7D1;
+  --accent:#1E8FA8; --accent-soft:#DBF1F6;
+  --good:#1B8A5A; --good-soft:#DCF3E8;
+  --bad:#C43E32; --bad-soft:#FBE1DE;
+  --warn:#96650F; --warn-soft:#F5E7CB;
+  --s0:#1E6FA8; --s0-soft:#DCEBF7;
+  --s1:#C43E32; --s1-soft:#FBE1DE;
+  --s2:#1B8A5A; --s2-soft:#DCF3E8;
+  --s3:#96650F; --s3-soft:#F5E7CB;
+  --shadow: 0 1px 2px rgba(15,20,30,0.06), 0 10px 26px rgba(15,20,30,0.07);
+}
+
+*{box-sizing:border-box;}
+html,body{ margin:0; }
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'IBM Plex Sans', system-ui, sans-serif;
+  font-size:15px; line-height:1.5;
+}
+::selection{ background:var(--accent-soft); }
+a{ color:var(--accent); }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+.wrap{ max-width:920px; margin:0 auto; padding:26px 20px 70px; }
+
+header.top{
+  display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+  flex-wrap:wrap; margin-bottom:18px;
+}
+.brand .eyebrow{
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.13em; text-transform:uppercase;
+  color:var(--accent); display:flex; gap:7px; align-items:center;
+}
+.brand .eyebrow::before{ content:""; width:16px; height:1px; background:var(--accent); }
+h1.title{ font-family:'Fraunces',Georgia,serif; font-weight:600; font-size:1.55rem; margin:3px 0 0; }
+.freshness{ text-align:right; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-dim); }
+.freshness .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--good); margin-right:5px; }
+
+/* ---- alerts ---- */
+#alertStrip{ display:flex; flex-direction:column; gap:1px; margin-bottom:16px; }
+.alert-row{ display:flex; align-items:center; gap:10px; padding:9px 14px; font-size:13px; border:1px solid var(--line); background:var(--surface); }
+.alert-row.warn{ border-color:var(--warn); background:var(--warn-soft); color:var(--warn); }
+.alert-row.bad{ border-color:var(--bad); background:var(--bad-soft); color:var(--bad); }
+.alert-row .tag{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.06em; border:1px solid currentColor; padding:2px 6px; border-radius:3px; flex-shrink:0; }
+.alert-row span.msg{ color:var(--ink); }
+
+/* ---- hero ---- */
+.hero{ background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow); padding:22px 24px; margin-bottom:14px; }
+.state-badge{ display:inline-flex; align-items:center; gap:8px; padding:6px 13px; border-radius:20px; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:12.5px; margin-bottom:10px; }
+.state-badge i{ width:8px; height:8px; border-radius:50%; }
+.hero-row{ display:flex; align-items:baseline; gap:20px; flex-wrap:wrap; }
+.hero-row .conf{ font-family:'IBM Plex Mono',monospace; font-size:2.1rem; font-weight:700; }
+.hero-row .meta{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft); display:flex; gap:16px; }
+.hero-row .meta b{ color:var(--ink); }
+
+/* ---- LLM take ---- */
+.take{ background:var(--accent-soft); border:1px solid var(--accent); border-left:3px solid var(--accent); padding:13px 16px; margin-top:14px; font-size:13.5px; }
+.take .k{ font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.07em; color:var(--accent); display:block; margin-bottom:5px; }
+
+/* ---- sector chips ---- */
+.sector-row{ display:flex; gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:14px; }
+.sector-chip{ flex:1; background:var(--surface); padding:11px 12px; text-align:center; }
+.sector-chip .l{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-dim); }
+.sector-chip .v{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:13px; margin-top:4px; }
+
+/* ---- week strip ---- */
+.week-strip{ display:flex; gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:14px; }
+.week-strip.forecast{ border-style:dashed; margin-bottom:22px; }
+.week-day{ flex:1; background:var(--surface); padding:9px 8px; text-align:center; }
+.week-day .d{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--ink-dim); }
+.week-day .bar{ height:5px; border-radius:3px; margin:6px 0 4px; }
+.week-day .bar.stack{ display:flex; overflow:hidden; }
+.week-day .bar.stack span{ height:100%; }
+.week-day .lbl{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--ink-soft); }
+.week-day .pct{ font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--ink-dim); margin-top:1px; }
+.week-day .other{ font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:var(--ink-dim); margin-top:2px; }
+
+/* ---- news ---- */
+.news-list{ display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:26px; }
+.news-row{ background:var(--surface); padding:10px 14px; }
+.news-row .meta{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-dim); margin-bottom:2px; }
+.news-row a{ font-size:13px; color:var(--ink); text-decoration:none; }
+.news-row a:hover{ color:var(--accent); }
+.sec-head{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-dim); margin:0 0 8px; }
+
+/* ---- depth toggle ---- */
+details.depth{ margin-top:8px; }
+details.depth > summary{
+  cursor:pointer; list-style:none; font-family:'IBM Plex Mono',monospace; font-size:11.5px;
+  color:var(--ink-soft); padding:10px 0; border-top:1px solid var(--line); display:flex; align-items:center; gap:8px;
+}
+details.depth > summary::-webkit-details-marker{ display:none; }
+details.depth > summary::before{ content:"▸"; color:var(--accent); }
+details.depth[open] > summary::before{ content:"▾"; }
+details.depth > summary:hover{ color:var(--ink); }
+.depth-body{ padding-top:10px; }
+.depth-body section{ margin-bottom:28px; }
+.depth-body .sub{ font-size:11.5px; color:var(--ink-dim); margin-bottom:10px; display:block; }
+.panel{ background:var(--surface); border:1px solid var(--line); }
+.panel-pad{ padding:16px 18px; }
+.chart-card{ padding:16px 18px 8px; }
+.chart-title{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-dim); font-family:'IBM Plex Mono',monospace; margin-bottom:8px; display:flex; justify-content:space-between; }
+svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--ink-dim); }
+.axis-line{ stroke:var(--line-strong); stroke-width:1; }
+.legend{ display:flex; gap:12px; flex-wrap:wrap; font-size:10.5px; }
+.legend span{ display:inline-flex; align-items:center; gap:4px; }
+.legend i{ width:8px; height:8px; border-radius:2px; display:inline-block; }
+
+.tm-table{ border-collapse:collapse; width:100%; font-family:'IBM Plex Mono',monospace; font-size:11.5px; }
+.tm-table th,.tm-table td{ padding:7px 8px; text-align:center; border:1px solid var(--line); }
+.tm-table thead th{ color:var(--ink-dim); font-weight:600; font-size:9.5px; text-transform:uppercase; background:var(--surface-2); }
+.tm-table tbody th{ color:var(--ink-soft); font-weight:600; text-align:left; background:var(--surface-2); font-size:11px; }
+
+.regime-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+.regime-card{ background:var(--surface); padding:14px 16px; border-top:3px solid var(--line); }
+.regime-card .name{ font-family:'Fraunces',Georgia,serif; font-weight:600; font-size:0.98rem; margin-bottom:3px; }
+.regime-card .stats{ display:flex; gap:12px; margin:8px 0; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-dim); }
+.regime-card .stats b{ color:var(--ink-soft); }
+.regime-card .desc{ font-size:11.5px; color:var(--ink-dim); }
+
+.analog-list{ display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); }
+.analog-row{ background:var(--surface); padding:9px 14px; display:flex; align-items:center; gap:12px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; }
+.analog-row .date{ width:90px; color:var(--ink-soft); font-weight:600; }
+.analog-row .badge{ font-size:9.5px; padding:2px 6px; border-radius:3px; }
+.analog-row .dist{ margin-left:auto; color:var(--ink-dim); }
+
+.log-list{ display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); }
+.log-row{ background:var(--surface); padding:10px 14px; border-left:3px solid var(--line-strong); }
+.log-row .topline{ display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:11px; }
+.log-row .topline b{ color:var(--ink-soft); }
+.log-headline{ font-size:11.5px; color:var(--ink-dim); margin-top:3px; }
+.log-headline a{ color:var(--ink-dim); text-decoration:none; }
+.log-headline a:hover{ color:var(--accent); }
+
+.method-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+.method-cell{ background:var(--surface); padding:13px 16px; }
+.method-cell .n{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:1.1rem; }
+.method-cell .l{ font-size:10.5px; color:var(--ink-dim); margin-top:3px; }
+.caveat{ background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent); padding:12px 16px; font-size:11.5px; color:var(--ink-dim); margin-top:1px; }
+.caveat strong{ color:var(--ink-soft); }
+
+footer.pagefoot{ margin-top:30px; padding-top:14px; border-top:1px solid var(--line); font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-dim); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow">Autoencoder + HMM</div>
+      <h1 class="title">AI Market Regime Forecaster</h1>
+    </div>
+    <div class="freshness">
+      <div><span class="dot"></span>as of <b id="asOfDate" style="color:var(--ink-soft)"></b></div>
+    </div>
+  </header>
+
+  <div id="alertStrip"></div>
+
+  <div class="hero">
+    <div class="state-badge" id="heroBadge"></div>
+    <div class="hero-row">
+      <span class="conf" id="heroConf"></span>
+      <span class="meta">
+        <span><b id="heroDays"></b> current streak</span>
+      </span>
+    </div>
+    <div class="take"><span class="k">Today's read</span><span id="llmTake"></span></div>
+  </div>
+
+  <div class="sec-head">Sector weather</div>
+  <div class="sector-row" id="sectorRow"></div>
+
+  <div class="sec-head">Last 5 sessions</div>
+  <div class="week-strip" id="weekStrip"></div>
+
+  <div class="sec-head">Next 5 sessions (forecast)</div>
+  <div class="week-strip forecast" id="forecastStrip"></div>
+
+  <div class="sec-head">Top news for this call</div>
+  <div class="news-list" id="newsList"></div>
+
+  <details class="depth">
+    <summary>Full research view — timeline, transition matrix, regime cards, analogs, methodology</summary>
+    <div class="depth-body">
+
+      <section>
+        <span class="sub">Regime timeline · SPY, shaded by detected regime, 2007–present</span>
+        <div class="panel chart-card">
+          <div class="chart-title"><span>SPY (log)</span><span class="legend" id="chartLegend"></span></div>
+          <svg id="timelineChart" width="100%" viewBox="0 0 900 260" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+      </section>
+
+      <section>
+        <span class="sub">90-day probability drift</span>
+        <div class="panel chart-card">
+          <svg id="driftChart" width="100%" viewBox="0 0 900 150" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+      </section>
+
+      <section>
+        <span class="sub">Transition matrix — P(tomorrow | today), empirical</span>
+        <div class="panel panel-pad"><table class="tm-table" id="tmTable"></table></div>
+      </section>
+
+      <section>
+        <span class="sub">The four regimes — named from each state's own feature signature</span>
+        <div class="regime-grid" id="regimeCards"></div>
+      </section>
+
+      <section>
+        <span class="sub">Similar days in history — nearest by full 16-feature distance</span>
+        <div class="analog-list" id="analogList"></div>
+      </section>
+
+      <section>
+        <span class="sub">Regime change log</span>
+        <div class="log-list" id="logList"></div>
+      </section>
+
+      <section>
+        <span class="sub">How much to trust this</span>
+        <div class="method-grid">
+          <div class="method-cell"><div class="n">81.6–83.7%</div><div class="l">Refit-stability agreement, 4 vintages</div></div>
+          <div class="method-cell"><div class="n">94% / 92%</div><div class="l">2008 GFC / COVID days captured by Crisis state</div></div>
+          <div class="method-cell"><div class="n">2022–2026</div><div class="l">Genuine frozen holdout</div></div>
+        </div>
+        <div class="caveat"><strong>Never backtested for P&amp;L.</strong> Validated on statistical fit, crisis-alignment, and refit stability only. Sector/regime notes describe historical character, not a recommendation.</div>
+      </section>
+
+    </div>
+  </details>
+
+  <footer class="pagefoot">
+    <span>AI Market Regime Forecaster · research model, not investment advice</span>
+    <span id="footStamp"></span>
+  </footer>
+
+</div>
+
+<script>
+const REGIME = __REGIME_DATA__;
+const NEWS = __NEWS_DATA__;
+const LLM_TAKE = __LLM_TAKE__;
+
+const STATE_META = {
+  0: { name: "Calm / Rates Rising", short:"Calm/Rates", color: "var(--s0)", soft: "var(--s0-soft)",
+       note: "Low realized vol, rising-rate backdrop. Trend continuation has room; rate-sensitive positions face headwinds." },
+  1: { name: "Crisis", short:"Crisis", color: "var(--s1)", soft: "var(--s1-soft)",
+       note: "Sharp drawdowns, highest realized vol of any state. Historically where new risk gets avoided." },
+  2: { name: "Calm Bull", short:"Calm Bull", color: "var(--s2)", soft: "var(--s2-soft)",
+       note: "Most common regime — low-to-moderate vol, modestly positive drift. Historically the most benign backdrop." },
+  3: { name: "Elevated Vol / Grinding", short:"Elevated Vol", color: "var(--s3)", soft: "var(--s3-soft)",
+       note: "Choppy two-sided action, elevated vol. Absorbed most of the 2022 bear market and 2015-16 selloff — not panic, but sizing discipline matters more." }
+};
+const SECTOR_META = {
+  equities: {label:"Equities", low:"Calm", mid:"Mixed", high:"Stressed"},
+  vol:      {label:"Vol",      low:"Low",  mid:"Elevated", high:"Spiking"},
+  credit:   {label:"Credit",   low:"Tight", mid:"Mixed", high:"Widening"},
+  rates:    {label:"Rates",    low:"Falling", mid:"Stable", high:"Rising"},
+  commodities: {label:"Cmdty/FX", low:"Calm", mid:"Mixed", high:"Volatile"}
+};
+
+function fmtPct(x){ return (x*100).toFixed(1) + '%'; }
+function fmtPct0(x){ return (x*100).toFixed(0) + '%'; }
+function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function sectorLabel(key, z){
+  const m = SECTOR_META[key];
+  const az = Math.abs(z);
+  const label = az < 0.35 ? m.mid : (z >= 0 ? m.high : m.low);
+  return label;
+}
+function sectorColor(z){
+  const az = Math.abs(z);
+  return az < 0.35 ? cssVar('--ink-soft') : (az < 0.8 ? cssVar('--warn') : cssVar('--bad'));
+}
+
+document.getElementById('asOfDate').textContent = REGIME.as_of;
+document.getElementById('footStamp').textContent = 'as of ' + REGIME.as_of;
+document.getElementById('llmTake').textContent = LLM_TAKE;
+
+const cur = REGIME.current_regime;
+const curMeta = STATE_META[cur];
+const badge = document.getElementById('heroBadge');
+badge.style.background = curMeta.soft; badge.style.color = curMeta.color;
+badge.innerHTML = '<i style="background:'+curMeta.color+'"></i>' + curMeta.name;
+document.getElementById('heroConf').textContent = fmtPct0(REGIME.current_probs['p_state'+cur]) + ' conf.';
+document.getElementById('heroDays').textContent = REGIME.days_in_regime + 'd';
+
+// ---------- sector weather ----------
+(function(){
+  const row = document.getElementById('sectorRow');
+  row.innerHTML = Object.keys(SECTOR_META).map(k=>{
+    const z = REGIME.sector_today[k];
+    return '<div class="sector-chip"><div class="l">'+SECTOR_META[k].label+'</div>' +
+      '<div class="v" style="color:'+sectorColor(z)+'">'+sectorLabel(k,z)+'</div></div>';
+  }).join('');
+})();
+
+// ---------- past week strip ----------
+(function(){
+  const strip = document.getElementById('weekStrip');
+  strip.innerHTML = REGIME.week_dates.map((d,i)=>{
+    const s = REGIME.regime_last_week[i];
+    const m = STATE_META[s];
+    const dd = d.slice(5);
+    const rp = REGIME.recent_probs[d];
+    const tip = rp
+      ? d + '\n' + [0,1,2,3].map(x=>STATE_META[x].name+': '+fmtPct(rp[x])).join('\n')
+      : d + '\n' + m.name;
+    return '<div class="week-day" title="'+tip+'"><div class="d">'+dd+'</div><div class="bar" style="background:'+m.color+'"></div><div class="lbl">'+m.short+'</div></div>';
+  }).join('');
+})();
+
+// ---------- next 5 sessions (forecast strip) ----------
+// each day's chip shows the SINGLE most-likely state that day and its probability --
+// same visual language as the "last 5 sessions" strip so actual vs. projected reads
+// as one continuous week at a glance.
+(function(){
+  const strip = document.getElementById('forecastStrip');
+  // next 5 trading days (weekdays only -- a simple approximation, doesn't account
+  // for market holidays) counted forward from the regime data's as-of date.
+  const tradingDates = [];
+  let d = new Date(REGIME.as_of + 'T00:00:00');
+  while(tradingDates.length < 5){
+    d = new Date(d.getTime() + 86400000);
+    const dow = d.getDay();
+    if(dow !== 0 && dow !== 6) tradingDates.push(new Date(d));
+  }
+  const fmtMD = dt => String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+
+  strip.innerHTML = [1,2,3,4,5].map((k,i)=>{
+    const p = REGIME.forecast[String(k)];
+    const order = [0,1,2,3].slice().sort((a,b)=>p[b]-p[a]);
+    const best = order[0], second = order[1];
+    const segs = [0,1,2,3].map(s=>'<span style="flex:'+Math.max(p[s],0.003)+';background:'+STATE_META[s].color+'"></span>').join('');
+    const dateLabel = fmtMD(tradingDates[i]);
+    const tip = dateLabel + ' (+'+k+'d)\n' + [0,1,2,3].map(s=>STATE_META[s].name+': '+fmtPct(p[s])).join('\n');
+    return '<div class="week-day" title="'+tip+'"><div class="d">'+dateLabel+'</div>' +
+      '<div class="bar stack">'+segs+'</div>' +
+      '<div class="lbl" style="color:'+STATE_META[best].color+'">'+STATE_META[best].short+' '+fmtPct0(p[best])+'</div>' +
+      '<div class="other">'+STATE_META[second].short+' '+fmtPct0(p[second])+'</div></div>';
+  }).join('');
+})();
+
+// ---------- alerts ----------
+(function(){
+  const alerts = [];
+  const dates = Object.keys(REGIME.recent_probs).sort();
+  const today = dates[dates.length-1], yesterday = dates[dates.length-2];
+  const pToday = REGIME.recent_probs[today], pYest = REGIME.recent_probs[yesterday];
+  const pCrisis = REGIME.current_probs['p_state1'];
+  if(pCrisis > 0.30) alerts.push({level:'bad', tag:'Crisis Watch', msg:'P(Crisis) is '+fmtPct0(pCrisis)+' today.'});
+  if(REGIME.days_in_regime === 1) alerts.push({level:'warn', tag:'Regime Change', msg:'Just shifted into '+curMeta.name+'.'});
+  if(pYest){
+    let maxSwing=0, swingState=0;
+    for(let s=0;s<4;s++){ const d=Math.abs(pToday[s]-pYest[s]); if(d>maxSwing){maxSwing=d; swingState=s;} }
+    if(maxSwing>0.30) alerts.push({level:'warn', tag:'Swing', msg:'P('+STATE_META[swingState].name+') moved '+fmtPct0(maxSwing)+'.'});
+  }
+  const strip = document.getElementById('alertStrip');
+  strip.innerHTML = alerts.length===0
+    ? '<div class="alert-row"><span class="tag" style="color:var(--ink-soft);border-color:var(--line-strong)">Clear</span><span class="msg">No alerts.</span></div>'
+    : alerts.map(a=>'<div class="alert-row '+a.level+'"><span class="tag">'+a.tag+'</span><span class="msg">'+a.msg+'</span></div>').join('');
+})();
+
+// ---------- news ----------
+(function(){
+  document.getElementById('newsList').innerHTML = NEWS.recent.map(n=>
+    '<div class="news-row"><div class="meta">'+n.date+' · '+n.section+'</div>' +
+    '<a href="'+n.url+'" target="_blank" rel="noopener">'+n.title+'</a></div>'
+  ).join('');
+})();
+
+// ================= DEPTH (built lazily-ish, cheap enough to just build now) =================
+
+(function(){
+  const tbl = document.getElementById('tmTable');
+  let html = '<thead><tr><th>from \\ to</th>' + [0,1,2,3].map(s=>'<th>'+STATE_META[s].short+'</th>').join('') + '</tr></thead><tbody>';
+  REGIME.transmat.forEach((row,i)=>{
+    html += '<tr><th style="color:'+STATE_META[i].color+'">'+STATE_META[i].short+'</th>';
+    row.forEach((v,j)=>{
+      const bg = i===j ? STATE_META[i].soft : 'transparent';
+      html += '<td style="background:'+bg+'">'+fmtPct0(v)+'</td>';
+    });
+    html += '</tr>';
+  });
+  tbl.innerHTML = html + '</tbody>';
+})();
+
+(function(){
+  const grid = document.getElementById('regimeCards');
+  grid.innerHTML = [0,1,2,3].map(s=>{
+    const m = STATE_META[s];
+    return '<div class="regime-card" style="border-top-color:'+m.color+'">' +
+      '<div class="name" style="color:'+m.color+'">'+m.name+'</div>' +
+      '<div class="stats"><span><b>'+REGIME.freq_days[s]+'d</b> total</span><span><b>~'+REGIME.avg_duration[s]+'d</b> avg run</span></div>' +
+      '<div class="desc">'+m.note+'</div>' +
+    '</div>';
+  }).join('');
+})();
+
+(function(){
+  document.getElementById('analogList').innerHTML = REGIME.analogs.map(a=>{
+    const m = STATE_META[a.regime];
+    return '<div class="analog-row"><span class="date">'+a.date+'</span>' +
+      '<span class="badge" style="background:'+m.soft+';color:'+m.color+'">'+m.short+'</span>' +
+      '<span class="dist">dist '+a.dist.toFixed(2)+'</span></div>';
+  }).join('');
+})();
+
+(function(){
+  const items = REGIME.transitions.slice().reverse().slice(0,12);
+  const newsByDate = {};
+  NEWS.transition_news.forEach(t=> newsByDate[t.transition_date] = t.headlines);
+  document.getElementById('logList').innerHTML = items.map(t=>{
+    const m = STATE_META[t.state];
+    const heads = (newsByDate[t.start]||[]).map(h=>
+      '<div class="log-headline">· <a href="'+h.url+'" target="_blank" rel="noopener">'+h.title+'</a></div>'
+    ).join('');
+    return '<div class="log-row" style="border-left-color:'+m.color+'">' +
+      '<div class="topline"><b>'+t.start+'</b><span>&rarr;</span><b style="color:'+m.color+'">'+m.short+'</b><span>('+t.days+'d)</span></div>' +
+      heads +
+    '</div>';
+  }).join('');
+})();
+
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs){ const e = document.createElementNS(NS, tag); for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+(function(){
+  const svg = document.getElementById('timelineChart');
+  const W = 900, H = 260, padL = 44, padR = 12, padT = 12, padB = 22;
+  const dates = Object.keys(REGIME.chart).sort();
+  const vals = dates.map(d=>REGIME.chart[d][0]);
+  const logVals = vals.map(v=>Math.log(v));
+  const t0 = new Date(dates[0]).getTime(), t1 = new Date(dates[dates.length-1]).getTime();
+  const x = d => padL + (new Date(d).getTime()-t0)/(t1-t0)*(W-padL-padR);
+  const yMin = Math.min(...logVals), yMax = Math.max(...logVals);
+  const y = v => (H-padB) - (v-yMin)/(yMax-yMin)*(H-padT-padB);
+  REGIME.runs.forEach(r=>{
+    const x1=x(r.start), x2=x(r.end);
+    svg.appendChild(el('rect', {x:x1, y:padT, width:Math.max(x2-x1,1), height:H-padT-padB, fill:STATE_META[r.state].soft, opacity:0.9}));
+  });
+  [yMin,(yMin+yMax)/2,yMax].forEach(v=>{
+    const yy=y(v);
+    svg.appendChild(el('line',{x1:padL,x2:W-padR,y1:yy,y2:yy,class:'axis-line',opacity:0.3}));
+    const t=el('text',{x:4,y:yy+4,'font-size':9}); t.textContent=Math.round(Math.exp(v)); svg.appendChild(t);
+  });
+  let path=''; dates.forEach((d,i)=>{ path += (i===0?'M':'L')+x(d).toFixed(1)+','+y(logVals[i]).toFixed(1)+' '; });
+  svg.appendChild(el('path',{d:path, fill:'none', stroke:cssVar('--ink'), 'stroke-width':1.1}));
+  [2008,2012,2016,2020,2024].forEach(yr=>{
+    const t=new Date(yr+'-01-01').getTime(); if(t<t0||t>t1) return;
+    const xx=padL+(t-t0)/(t1-t0)*(W-padL-padR);
+    svg.appendChild(el('line',{x1:xx,x2:xx,y1:H-padB,y2:H-padB+4,class:'axis-line'}));
+    const lbl=el('text',{x:xx,y:H-padB+15,'font-size':9,'text-anchor':'middle'}); lbl.textContent=yr; svg.appendChild(lbl);
+  });
+  document.getElementById('chartLegend').innerHTML = [0,1,2,3].map(s=>'<span><i style="background:'+STATE_META[s].color+'"></i>'+STATE_META[s].short+'</span>').join('');
+})();
+
+(function(){
+  const svg = document.getElementById('driftChart');
+  const W=900, H=150, padL=16, padR=12, padT=8, padB=20;
+  const dates = Object.keys(REGIME.recent_probs).sort();
+  const n = dates.length;
+  const x = i => padL + i/(n-1)*(W-padL-padR);
+  const yTop=padT, yBot=H-padB;
+  const cum = dates.map(d=>{ const p=REGIME.recent_probs[d]; const c=[0,0,0,0]; let r=0; for(let s=0;s<4;s++){ r+=p[s]; c[s]=r; } return c; });
+  for(let s=3;s>=0;s--){
+    let path='';
+    dates.forEach((d,i)=>{ const v=cum[i][s]; path += (i===0?'M':'L')+x(i).toFixed(1)+','+(yBot-(yBot-yTop)*v).toFixed(1)+' '; });
+    for(let i=n-1;i>=0;i--){ const below = s===0?0:cum[i][s-1]; path += 'L'+x(i).toFixed(1)+','+(yBot-(yBot-yTop)*below).toFixed(1)+' '; }
+    path += 'Z';
+    svg.appendChild(el('path',{d:path, fill:STATE_META[s].color, opacity:0.85}));
+  }
+  svg.appendChild(el('line',{x1:padL,x2:W-padR,y1:yBot,y2:yBot,class:'axis-line'}));
+  [0,Math.floor(n/2),n-1].forEach(i=>{ const lbl=el('text',{x:x(i),y:H-6,'font-size':9,'text-anchor':'middle'}); lbl.textContent=dates[i]; svg.appendChild(lbl); });
+})();
+</script>
